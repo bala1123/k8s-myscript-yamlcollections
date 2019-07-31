@@ -1,0 +1,47 @@
+pipeline {
+  environment {
+    registry = "bala0923/sampleapp"
+    registryCredential = 'dockerlogin'
+    dockerImage = ''
+  }
+  agent any
+  stages {
+    stage('Cloning Git') {
+      steps {
+        git 'https://github.com/bala1123/Sample-App.git'
+      }
+    }
+    stage('Building image') {
+      steps{
+        script {
+          dockerImage = docker.build registry + ":$BUILD_NUMBER"
+        }
+      }
+    }
+    stage('Deploy Image') {
+      steps{
+        script {
+          docker.withRegistry( '', registryCredential ) {
+            dockerImage.push()
+          }
+        }
+      }
+    }
+    stage('Pull the docker image'){
+        steps {
+        sh "ssh ubuntu@172.31.10.91 -C \'sudo docker pull $registry:$BUILD_NUMBER \'"
+        }
+    }
+    stage('Remove Unused docker image') {
+      steps{
+        sh "docker rmi $registry:$BUILD_NUMBER"
+      }
+    }
+    stage('Deploy on kubernetes'){
+        steps {
+        sh "ssh root@172.31.10.91 \'kubectl set image deployment my-rolling-deploy sampleapp=bala0923/sampleapp:$BUILD_NUMBER --record\'"
+        sh "ssh root@172.31.10.91 \'kubectl rollout status deploy my-rolling-deploy\'"
+        }
+    }
+  }
+}
