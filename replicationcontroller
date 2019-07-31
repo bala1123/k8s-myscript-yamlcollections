@@ -1,0 +1,19 @@
+---
+apiVersion: v1
+kind: ReplicationController
+metadata:
+ name: my-repcon
+spec:
+ replicas: 4
+ selector:
+   env: dev
+ template:
+    metadata:
+      labels:
+       env: dev   
+    spec:
+      containers:
+        - name: my-pod
+          image: bala0923/sampleapp:latest 
+          ports:
+          - containerPort: 80
